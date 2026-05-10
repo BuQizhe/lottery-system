@@ -268,9 +268,11 @@ function startWaiting(){function f(){wa+=.06;drawWheel(wa);return requestAnimati
 function animateRand(cb){const dur=1200,sa=wa,ta=sa+6*Math.PI+Math.random()*Math.PI*2;let st=null;
 function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel(sa+(ta-sa)*e);if(p<1)requestAnimationFrame(f);else{document.getElementById('centerBtn').textContent='再';document.getElementById('centerBtn').onclick=resetSpin;document.getElementById('spinBtn').disabled=false;document.getElementById('spinBtn').textContent='再 抽 一 次';document.getElementById('spinBtn').onclick=resetSpin;cb();}}requestAnimationFrame(f);}
 function animateTo(targetName,cb){
-    let ta=0;const step=Math.PI*2/segments.length;
-    for(let i=0;i<segments.length;i++){if(segments[i].name===targetName){ta=Math.PI*2-(i*step)-step/2;break;}}
-    const dur=2200,spins=8,sa=wa;let st=null;
+    let iTarget=0;const step=Math.PI*2/segments.length;
+    for(let i=0;i<segments.length;i++){if(segments[i].name===targetName){iTarget=i;break;}}
+    // 目标角度：使目标扇区中心停在顶部（指针位置），需要补偿当前角度 sa
+    const sa=wa,ta=-sa-iTarget*step-step/2+Math.PI*2;
+    const dur=2200,spins=8;let st=null;
     function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel(sa+(spins*Math.PI*2+ta)*e);if(p<1)requestAnimationFrame(f);else{document.getElementById('centerBtn').textContent='再';document.getElementById('centerBtn').onclick=resetSpin;document.getElementById('spinBtn').disabled=false;document.getElementById('spinBtn').textContent='再 抽 一 次';document.getElementById('spinBtn').onclick=resetSpin;cb();}}
     requestAnimationFrame(f);
 }
