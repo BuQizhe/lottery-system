@@ -249,6 +249,7 @@ document.getElementById('spinBtn').onclick=spin;
 document.getElementById('centerBtn').onclick=spin;
 async function spin(){
     if(!activityId)return alert('请先选择活动');
+    if(!segments.length||segments[0]?.name==='暂无奖品')return alert('当前活动暂无奖品，请联系管理员');
     if(isSpinning)return;isSpinning=true;
     document.getElementById('spinBtn').disabled=true;
     document.getElementById('centerBtn').style.pointerEvents='none';
@@ -259,19 +260,28 @@ async function spin(){
         animateTo(apiResult.data.prizeName,()=>{showWin(apiResult.data);fetch('/api/user/winningRecords').then(r=>r.json()).then(d=>{if(d.code===200)renderRecords(d.data);});});
     }else{
         const msg=apiResult?(apiResult.message||'很遗憾，未中奖'):'网络错误';
-        animateRand(()=>{alert(msg);isSpinning=false;document.getElementById('spinBtn').disabled=false;document.getElementById('centerBtn').style.pointerEvents='auto';});
+        animateRand(()=>{alert(msg);});
     }
 }
 let wa=0;
 function startWaiting(){function f(){wa+=.06;drawWheel(wa);return requestAnimationFrame(f);}return f();}
 function animateRand(cb){const dur=1200,sa=wa,ta=sa+6*Math.PI+Math.random()*Math.PI*2;let st=null;
-function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel(sa+(ta-sa)*e);if(p<1)requestAnimationFrame(f);else cb();}requestAnimationFrame(f);}
+function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel(sa+(ta-sa)*e);if(p<1)requestAnimationFrame(f);else{document.getElementById('centerBtn').textContent='再';document.getElementById('centerBtn').onclick=resetSpin;document.getElementById('spinBtn').disabled=false;document.getElementById('spinBtn').textContent='再 抽 一 次';document.getElementById('spinBtn').onclick=resetSpin;cb();}}requestAnimationFrame(f);}
 function animateTo(targetName,cb){
     let ta=0;const step=Math.PI*2/segments.length;
     for(let i=0;i<segments.length;i++){if(segments[i].name===targetName){ta=Math.PI*2-(i*step)-step/2;break;}}
-    const dur=2200,spins=8;let st=null;
-    function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel((spins*Math.PI*2+ta)*e);if(p<1)requestAnimationFrame(f);else{isSpinning=false;document.getElementById('spinBtn').disabled=false;document.getElementById('centerBtn').style.pointerEvents='auto';cb();}}
+    const dur=2200,spins=8,sa=wa;let st=null;
+    function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel(sa+(spins*Math.PI*2+ta)*e);if(p<1)requestAnimationFrame(f);else{document.getElementById('centerBtn').textContent='再';document.getElementById('centerBtn').onclick=resetSpin;document.getElementById('spinBtn').disabled=false;document.getElementById('spinBtn').textContent='再 抽 一 次';document.getElementById('spinBtn').onclick=resetSpin;cb();}}
     requestAnimationFrame(f);
+}
+function resetSpin(){
+    isSpinning=false;
+    document.getElementById('centerBtn').textContent='转';
+    document.getElementById('centerBtn').onclick=spin;
+    document.getElementById('spinBtn').textContent='开 始 抽 奖';
+    document.getElementById('spinBtn').onclick=spin;
+    document.getElementById('spinBtn').disabled=false;
+    document.getElementById('centerBtn').style.pointerEvents='auto';
 }
 function showWin(data){
     document.getElementById('winPrizeName').textContent=data.prizeName;
