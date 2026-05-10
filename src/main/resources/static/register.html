@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>用户注册 - 抽奖系统</title>
+    <link rel="stylesheet" href="/css/glass.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 40px 20px; }
+        .register-card { width: 420px; padding: 48px 40px; }
+        .register-card h2 { text-align: center; font-weight: 400; font-size: 22px; letter-spacing: 6px; margin-bottom: 8px; }
+        .register-card .subtitle { text-align: center; font-size: 12px; color: #a09888; letter-spacing: 2px; margin-bottom: 36px; }
+        .form-group { margin-bottom: 28px; }
+        .form-group label { display: block; font-size: 11px; color: #a09888; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px; }
+        .form-group input { width: 100%; padding: 12px 0; border: none; border-bottom: 1px solid #d4cfc8; font-size: 15px; color: #2d2d2d; background: transparent; outline: none; font-family: inherit; transition: border-color .3s; }
+        .form-group input:focus { border-bottom-color: #2d2d2d; }
+        .form-group input::placeholder { color: #c4bfb8; font-size: 13px; }
+        .register-btn { width: 100%; margin-top: 8px; }
+        .login-link { text-align: center; margin-top: 28px; font-size: 13px; color: #a09888; }
+        .login-link a { color: #2d2d2d; text-decoration: none; border-bottom: 1px solid #d4cfc8; transition: border-color .3s; }
+        .login-link a:hover { border-color: #2d2d2d; }
+    </style>
+</head>
+<body class="jp-style">
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+
+<div class="jp-card register-card fade-in-up">
+    <h2>用户注册</h2>
+    <div class="jp-divider"></div>
+    <div class="subtitle">REGISTER</div>
+
+    <div id="message" class="jp-msg" style="display:none;"></div>
+
+    <form id="registerForm">
+        <div class="form-group fade-in-up-1">
+            <label>姓名</label>
+            <input type="text" id="name" placeholder="请输入真实姓名" required>
+        </div>
+        <div class="form-group fade-in-up-2">
+            <label>手机号</label>
+            <input type="tel" id="phone" placeholder="请输入手机号" required>
+        </div>
+        <div class="form-group fade-in-up-2">
+            <label>邮箱</label>
+            <input type="email" id="email" placeholder="请输入邮箱" required>
+        </div>
+        <div class="form-group fade-in-up-3">
+            <label>密码</label>
+            <input type="password" id="password" placeholder="请输入密码" required>
+        </div>
+        <div class="form-group fade-in-up-3">
+            <label>确认密码</label>
+            <input type="password" id="confirmPassword" placeholder="请再次输入密码" required>
+        </div>
+        <button type="submit" class="jp-btn jp-btn-primary register-btn fade-in-up-3">注 册</button>
+    </form>
+
+    <div class="login-link fade-in-up-3">
+        已有账号？<a href="blogin.html">立即登录</a>
+    </div>
+</div>
+
+<script>
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const phone = document.getElementById('phone').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (password !== confirmPassword) {
+            showMessage('两次输入的密码不一致', 'error');
+            return;
+        }
+
+        if (!/^1[3-9]\d{9}$/.test(phone)) {
+            showMessage('请输入正确的手机号', 'error');
+            return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showMessage('请输入正确的邮箱', 'error');
+            return;
+        }
+
+        const user = { name, phone, email, password };
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(user)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showMessage('注册成功！3秒后跳转到登录页...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'blogin.html';
+                }, 3000);
+            } else {
+                showMessage(result.message, 'error');
+            }
+        } catch (error) {
+            showMessage('注册失败，请稍后重试', 'error');
+        }
+    });
+
+    function showMessage(msg, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = msg;
+        messageDiv.style.display = 'block';
+        messageDiv.className = type === 'success' ? 'jp-msg jp-msg-ok' : 'jp-msg jp-msg-err';
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+            messageDiv.className = 'jp-msg';
+        }, 3000);
+    }
+</script>
+</body>
+</html>

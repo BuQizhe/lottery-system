@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>核销员 - 扫码核销</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="/css/glass.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; padding: 0; }
+
+        .claimer-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 32px;
+            background: rgba(250,248,245,.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e8e4df;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .claimer-nav-brand {
+            font-size: 16px;
+            letter-spacing: 4px;
+            color: #2d2d2d;
+            font-weight: 400;
+        }
+        .claimer-nav .jp-btn-ghost {
+            border-color: #d4cfc8;
+            color: #a09888;
+            padding: 6px 20px;
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+        .claimer-nav .jp-btn-ghost:hover {
+            border-color: #2d2d2d;
+            color: #2d2d2d;
+            background: transparent;
+        }
+
+        .claimer-wrap {
+            max-width: 480px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .claimer-card {
+            background: #fff;
+            border: 1px solid #e8e4df;
+            border-radius: 3px;
+            padding: 48px 40px;
+            box-shadow: 0 2px 20px rgba(0,0,0,.03);
+        }
+        .claimer-card h2 {
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 6px;
+            text-align: center;
+            color: #2d2d2d;
+            margin-bottom: 8px;
+        }
+        .claimer-card .jp-divider {
+            margin-bottom: 36px;
+        }
+
+        .scan-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .scan-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 40px;
+            border: 1px solid #2d2d2d;
+            background: #2d2d2d;
+            color: #faf8f5;
+            font-size: 14px;
+            font-family: inherit;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all .3s;
+            width: 100%;
+        }
+        .scan-btn:hover {
+            background: #1a1a1a;
+            box-shadow: 0 2px 12px rgba(0,0,0,.15);
+        }
+
+        .manual-section {
+            margin-bottom: 28px;
+        }
+        .manual-section .jp-label {
+            margin-bottom: 12px;
+        }
+        .manual-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .manual-row input {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            border-bottom: 1px solid #d4cfc8;
+            font-size: 20px;
+            color: #2d2d2d;
+            background: transparent;
+            outline: none;
+            transition: border-color .3s;
+            font-family: inherit;
+            text-align: center;
+            letter-spacing: 6px;
+        }
+        .manual-row input:focus {
+            border-bottom-color: #2d2d2d;
+        }
+        .manual-row input::placeholder {
+            color: #c4bfb8;
+            font-size: 13px;
+            letter-spacing: 2px;
+        }
+        .manual-row .jp-btn {
+            flex-shrink: 0;
+            padding: 12px 24px;
+        }
+
+        .prize-info {
+            margin-top: 20px;
+            padding: 20px;
+            background: #faf8f5;
+            border: 1px solid #e8e4df;
+            border-radius: 3px;
+            display: none;
+            font-size: 14px;
+            line-height: 2;
+            color: #2d2d2d;
+        }
+        .prize-info.show { display: block; }
+        .prize-info strong {
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .result {
+            margin-top: 16px;
+            padding: 14px 0;
+            font-size: 13px;
+            display: none;
+            border-bottom: 1px solid;
+        }
+        .success {
+            color: #5a8a5a;
+            border-color: #c8dcc8;
+            display: block;
+        }
+        .error {
+            color: #b85a5a;
+            border-color: #dcc8c8;
+            display: block;
+        }
+
+        .hint {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #e8e4df;
+            font-size: 12px;
+            color: #a09888;
+            letter-spacing: 1px;
+            line-height: 2;
+        }
+
+        /* 扫码弹窗 */
+        .scanner-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,.92);
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .scanner-modal video {
+            width: 85%;
+            max-width: 380px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,.15);
+        }
+        .scanner-modal .close-scanner {
+            position: absolute;
+            top: 24px; right: 24px;
+            background: transparent;
+            color: #faf8f5;
+            border: 1px solid rgba(255,255,255,.3);
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            letter-spacing: 2px;
+            transition: all .3s;
+        }
+        .scanner-modal .close-scanner:hover {
+            border-color: #faf8f5;
+        }
+        .scanner-tip {
+            color: rgba(255,255,255,.6);
+            margin-top: 24px;
+            font-size: 13px;
+            letter-spacing: 2px;
+        }
+
+        .claimer-card .jp-btn-confirm {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 32px;
+            border: 1px solid #2d2d2d;
+            background: #2d2d2d;
+            color: #faf8f5;
+            font-size: 14px;
+            font-family: inherit;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all .3s;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .claimer-card .jp-btn-confirm:hover {
+            background: #1a1a1a;
+        }
+    </style>
+</head>
+<body class="jp-style">
+<!-- 浮动光斑 -->
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+
+<nav class="claimer-nav">
+    <span class="claimer-nav-brand">核销员工作台</span>
+    <button class="jp-btn-ghost" onclick="logout()" style="border:1px solid #d4cfc8;color:#a09888;padding:6px 20px;font-size:12px;letter-spacing:2px;background:transparent;cursor:pointer;font-family:inherit;">退出登录</button>
+</nav>
+
+<div class="claimer-wrap fade-in-up">
+    <div class="claimer-card">
+        <h2>扫码核销</h2>
+        <div class="jp-divider"></div>
+
+        <div class="scan-section">
+            <button class="scan-btn" onclick="openScanner()">扫码核销</button>
+        </div>
+
+        <div class="manual-section">
+            <label class="jp-label">手动输入核销码</label>
+            <div class="manual-row">
+                <input type="text" id="claimCode" placeholder="6位核销码" maxlength="6" autocomplete="off">
+                <button class="jp-btn" onclick="checkAndClaim()">核销</button>
+            </div>
+        </div>
+
+        <div id="prizeInfo" class="prize-info"></div>
+        <div id="result" class="result"></div>
+
+        <div class="hint">
+            点击「扫码核销」扫描用户中奖二维码<br>
+            也可手动输入6位核销码进行核销
+        </div>
+    </div>
+</div>
+
+<!-- 扫码弹窗 -->
+<div id="scannerModal" class="scanner-modal">
+    <button class="close-scanner" onclick="closeScanner()">关闭</button>
+    <video id="video" autoplay playsinline></video>
+    <div class="scanner-tip">将二维码放入框内自动识别</div>
+</div>
+
+<script>
+    let videoElement = null;
+    let scannerActive = false;
+    let scanInterval = null;
+    let currentClaimCode = null;
+
+    // 检查登录状态和权限
+    async function checkLogin() {
+        try {
+            const res = await fetch('/api/currentUser');
+            const result = await res.json();
+            if (result.code !== 200) {
+                window.location.href = 'blogin.html';
+                return;
+            }
+            if (result.data.role !== 'CLAIMER' && result.data.role !== 'ADMIN') {
+                alert('您没有核销权限');
+                window.location.href = 'blogin.html';
+            }
+        } catch (error) {
+            window.location.href = 'blogin.html';
+        }
+    }
+
+    async function openScanner() {
+        const modal = document.getElementById('scannerModal');
+        modal.style.display = 'flex';
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            videoElement = document.getElementById('video');
+            videoElement.srcObject = stream;
+            videoElement.play();
+            scannerActive = true;
+            startScanning();
+        } catch (err) {
+            alert('无法打开摄像头：' + err.message);
+            closeScanner();
+        }
+    }
+
+    function startScanning() {
+        if (scanInterval) clearInterval(scanInterval);
+
+        scanInterval = setInterval(async () => {
+            if (!scannerActive) return;
+
+            const video = document.getElementById('video');
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = canvas.toDataURL('image/png');
+
+                try {
+                    const response = await fetch('/api/qr/decode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: imageData })
+                    });
+                    const result = await response.json();
+                    if (result.code === 200) {
+                        // 识别到二维码，停止扫描
+                        clearInterval(scanInterval);
+                        scanInterval = null;
+                        document.getElementById('claimCode').value = result.code;
+                        closeScanner();
+                        checkAndClaim();
+                    }
+                } catch (error) {
+                    console.log('识别失败，继续扫描');
+                }
+            }
+        }, 500);
+    }
+
+    function closeScanner() {
+        scannerActive = false;
+        if (scanInterval) {
+            clearInterval(scanInterval);
+            scanInterval = null;
+        }
+        if (videoElement && videoElement.srcObject) {
+            videoElement.srcObject.getTracks().forEach(track => track.stop());
+        }
+        document.getElementById('scannerModal').style.display = 'none';
+    }
+
+    async function checkAndClaim() {
+        const claimCode = document.getElementById('claimCode').value;
+        if (!claimCode || claimCode.length !== 6) {
+            alert('请输入正确的6位核销码');
+            return;
+        }
+
+        currentClaimCode = claimCode;
+        const resultDiv = document.getElementById('result');
+        const prizeInfoDiv = document.getElementById('prizeInfo');
+
+        resultDiv.innerHTML = '查询中...';
+        resultDiv.className = 'result';
+        prizeInfoDiv.innerHTML = '';
+        prizeInfoDiv.classList.remove('show');
+
+        try {
+            // 先查询核销码信息
+            const checkRes = await fetch(`/api/admin/checkClaimCode?claimCode=${claimCode}`);
+            const checkResult = await checkRes.json();
+
+            if (checkResult.success) {
+                if (checkResult.status === 1) {
+                    prizeInfoDiv.innerHTML = `
+                        <strong>该奖品已被领取</strong><br>
+                        奖品：${checkResult.prizeName}<br>
+                        用户：${checkResult.userName}
+                    `;
+                    prizeInfoDiv.classList.add('show');
+                    resultDiv.innerHTML = '';
+                    resultDiv.className = 'result';
+                } else {
+                    prizeInfoDiv.innerHTML = `
+                        <strong>核销码有效</strong><br>
+                        奖品：${checkResult.prizeName}<br>
+                        用户：${checkResult.userName}<br>
+                        <button class="jp-btn-confirm" onclick="doClaim()">确认核销</button>
+                    `;
+                    prizeInfoDiv.classList.add('show');
+                    resultDiv.innerHTML = '';
+                    resultDiv.className = 'result';
+                }
+            } else {
+                resultDiv.innerHTML = `${checkResult.message}`;
+                resultDiv.className = 'result error';
+            }
+        } catch (error) {
+            resultDiv.innerHTML = '查询失败，请稍后重试';
+            resultDiv.className = 'result error';
+        }
+    }
+
+    async function doClaim() {
+        const resultDiv = document.getElementById('result');
+        const prizeInfoDiv = document.getElementById('prizeInfo');
+
+        resultDiv.innerHTML = '核销中...';
+        resultDiv.className = 'result';
+
+        try {
+            const response = await fetch('/api/admin/claimPrize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ claimCode: currentClaimCode })
+            });
+            const result = await response.json();
+
+            if (result.code === 200) {
+                resultDiv.innerHTML = '核销成功，奖品已领取';
+                resultDiv.className = 'result success';
+                prizeInfoDiv.innerHTML = '';
+                prizeInfoDiv.classList.remove('show');
+                document.getElementById('claimCode').value = '';
+                setTimeout(() => {
+                    resultDiv.className = 'result';
+                }, 2000);
+            } else {
+                resultDiv.innerHTML = `${result.message}`;
+                resultDiv.className = 'result error';
+            }
+        } catch (error) {
+            resultDiv.innerHTML = '核销失败，请稍后重试';
+            resultDiv.className = 'result error';
+        }
+    }
+
+    async function logout() {
+        await fetch('/api/logout');
+        window.location.href = 'blogin.html';
+    }
+
+    // 页面加载时检查登录
+    checkLogin();
+</script>
+</body>
+</html>

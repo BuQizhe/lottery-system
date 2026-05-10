@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>中奖记录 - 管理员</title>
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+  <style>
+    body {
+        background-color: #f5f5f5;
+        padding: 20px;
+    }
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .card-header {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .export-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .export-btn:hover {
+        background-color: #218838;
+        transform: scale(1.02);
+    }
+    .table th {
+        background-color: #f8f9fa;
+        text-align: center;
+        vertical-align: middle;
+    }
+    .table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+    .search-box {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .search-box input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+    }
+    .search-box button {
+        background-color: #667eea;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .search-box button:hover {
+        background-color: #5a67d8;
+    }
+    .pagination {
+        margin-top: 20px;
+        justify-content: center;
+    }
+    .page-link {
+        cursor: pointer;
+    }
+    .badge-success {
+        background-color: #28a745;
+    }
+    .badge-warning {
+        background-color: #ffc107;
+        color: #333;
+    }
+    .badge-info {
+        background-color: #17a2b8;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h4><i class="fas fa-list-alt"></i> 中奖记录</h4>
+      <button class="export-btn" onclick="exportExcel()">
+        <i class="fas fa-file-excel"></i> 导出Excel
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索中奖者姓名/奖品名称..." class="form-control">
+        <button onclick="searchRecords()"><i class="fas fa-search"></i> 搜索</button>
+        <button onclick="loadRecords(1)" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> 重置</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead>
+          <tr>
+            <th>序号</th>
+            <th>中奖者ID</th>
+            <th>中奖者姓名</th>
+            <th>奖品名称</th>
+            <th>奖品等级</th>
+            <th>中奖时间</th>
+          </tr>
+          </thead>
+          <tbody id="recordList">
+          <tr>
+            <td colspan="6" class="text-center">加载中...</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <nav>
+        <ul class="pagination" id="pagination"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<script>
+  var userToken = localStorage.getItem("user_token");
+  var currentPage = 1;
+  var pageSize = 15;
+  var totalPages = 1;
+  var allRecords = [];
+
+  if (!userToken) {
+      alert("请先登录");
+      location.href = "blogin.html";
+  }
+
+  function loadRecords(page) {
+      currentPage = page || 1;
+      $.ajax({
+          url: '/winning-records/show',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({}),
+          headers: { 'user_token': userToken },
+          success: function(result) {
+              if (result.code === 200 && result.data) {
+                  allRecords = result.data;
+                  totalPages = Math.ceil(allRecords.length / pageSize);
+                  renderTable();
+                  renderPagination();
+                  toastr.success('加载成功，共 ' + allRecords.length + ' 条记录');
+              } else {
+                  $('#recordList').html('<tr><td colspan="6" class="text-center">暂无中奖记录</td></tr>');
+                  $('#pagination').empty();
+              }
+          },
+          error: function() {
+              $('#recordList').html('<tr><td colspan="6" class="text-center">加载失败，请刷新重试</td></tr>');
+          }
+      });
+  }
+
+  function renderTable() {
+      var start = (currentPage - 1) * pageSize;
+      var end = start + pageSize;
+      var pageRecords = allRecords.slice(start, end);
+
+      if (pageRecords.length === 0) {
+          $('#recordList').html('<tr><td colspan="6" class="text-center">暂无中奖记录</td></tr>');
+          return;
+      }
+
+      var html = '';
+      pageRecords.forEach(function(record, index) {
+          var tierClass = 'badge-success';
+          var tierText = record.prizeTier || '参与奖';
+          if (tierText === '一等奖') tierClass = 'badge-warning';
+          else if (tierText === '二等奖') tierClass = 'badge-info';
+          else if (tierText === '三等奖') tierClass = 'badge-success';
+
+          html += `
+              <tr>
+                  <td>${start + index + 1}</td>
+                  <td>${record.winnerId || ''}</td>
+                  <td><strong>${record.winnerName || ''}</strong></td>
+                  <td><span style="color:#667eea; font-weight:bold;">${record.prizeName || ''}</span></td>
+                  <td><span class="badge ${tierClass}">${tierText}</span></td>
+                  <td>${formatDate(record.winningTime)}</td>
+              </tr>
+          `;
+      });
+      $('#recordList').html(html);
+  }
+
+  function renderPagination() {
+      if (totalPages <= 1) {
+          $('#pagination').empty();
+          return;
+      }
+
+      var html = '';
+      html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                  <a class="page-link" onclick="loadRecords(${currentPage - 1})">上一页</a>
+              </li>`;
+
+      var startPage = Math.max(1, currentPage - 4);
+      var endPage = Math.min(totalPages, startPage + 9);
+      if (endPage - startPage < 9 && startPage > 1) {
+          startPage = Math.max(1, endPage - 9);
+      }
+
+      for (var i = startPage; i <= endPage; i++) {
+          html += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                      <a class="page-link" onclick="loadRecords(${i})">${i}</a>
+                   </li>`;
+      }
+
+      html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                  <a class="page-link" onclick="loadRecords(${currentPage + 1})">下一页</a>
+              </li>`;
+      $('#pagination').html(html);
+  }
+
+  function searchRecords() {
+      var keyword = $('#searchInput').val().toLowerCase().trim();
+      if (!keyword) {
+          loadRecords(1);
+          return;
+      }
+      var filtered = allRecords.filter(function(record) {
+          return (record.winnerName && record.winnerName.toLowerCase().includes(keyword)) ||
+                 (record.prizeName && record.prizeName.toLowerCase().includes(keyword));
+      });
+      allRecords = filtered;
+      totalPages = Math.ceil(allRecords.length / pageSize);
+      currentPage = 1;
+      renderTable();
+      renderPagination();
+      toastr.info('找到 ' + allRecords.length + ' 条匹配记录');
+  }
+
+  function exportExcel() {
+      if (!allRecords || allRecords.length === 0) {
+          alert("暂无中奖记录可导出");
+          return;
+      }
+
+      // 使用当前显示的数据（包括搜索结果）导出
+      var exportData = allRecords;
+
+      // 构建导出URL，将数据作为参数传递
+      // 由于数据可能较多，使用POST方式导出
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/winning-records/export-data';
+      form.style.display = 'none';
+
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'data';
+      input.value = JSON.stringify(exportData);
+      form.appendChild(input);
+
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+
+      toastr.success('正在导出中奖记录...');
+  }
+
+  function formatDate(dateString) {
+      if (!dateString) return '';
+      try {
+          var date = new Date(dateString);
+          var year = date.getFullYear();
+          var month = String(date.getMonth() + 1).padStart(2, '0');
+          var day = String(date.getDate()).padStart(2, '0');
+          var hour = String(date.getHours()).padStart(2, '0');
+          var minute = String(date.getMinutes()).padStart(2, '0');
+          var second = String(date.getSeconds()).padStart(2, '0');
+          return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+      } catch(e) {
+          return dateString;
+      }
+  }
+
+  $(document).ready(function() {
+      loadRecords(1);
+  });
+</script>
+</body>
+</html>

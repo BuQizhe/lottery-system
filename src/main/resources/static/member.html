@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运大转盘</title>
+    <link rel="stylesheet" href="/css/glass.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { min-height:100vh; overflow-x:hidden; }
+
+        /* 淡粒子背景 */
+        #particles { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+
+        /* 主布局 */
+        .container {
+            position:relative; z-index:10;
+            max-width:1200px; margin:0 auto; padding:40px 24px;
+            display:flex; gap:40px; flex-wrap:wrap; justify-content:center;
+        }
+
+        /* 转盘卡片 */
+        .wheel-card { flex:1 1 520px; max-width:600px; text-align:center; padding:40px; }
+        .wheel-title { font-size:24px; letter-spacing:6px; margin-bottom:8px; font-weight:400; }
+        .wheel-sub { font-size:13px; color:#a09888; letter-spacing:2px; margin-bottom:28px; }
+
+        /* 转盘 */
+        .wheel-wrapper { position:relative; width:380px; height:380px; margin:0 auto 24px; }
+        canvas#wheelCanvas { position:absolute; top:0; left:0; border-radius:50%; transition:filter .3s; }
+        .pointer {
+            position:absolute; top:-24px; left:50%; transform:translateX(-50%);
+            width:0; height:0;
+            border-left:20px solid transparent; border-right:20px solid transparent;
+            border-top:44px solid #2d2d2d; z-index:10;
+        }
+        .center-dot {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            width:64px; height:64px; border-radius:50%;
+            background:#faf8f5; border:2px solid #d4cfc8;
+            display:flex; align-items:center; justify-content:center;
+            font-size:24px; color:#2d2d2d; cursor:pointer; z-index:5;
+            transition:all .3s; font-family:inherit;
+        }
+        .center-dot:hover { border-color:#2d2d2d; box-shadow:0 4px 20px rgba(0,0,0,.1); }
+
+        /* 活动选择 */
+        .act-select {
+            width:260px; padding:10px 16px;
+            border:1px solid #d4cfc8; border-radius:0;
+            background:#fff; color:#2d2d2d; font-size:14px;
+            text-align:center; cursor:pointer; margin-bottom:20px;
+            outline:none; transition:.3s; font-family:inherit; appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23a09888' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+            background-repeat:no-repeat; background-position:right 12px center; padding-right:30px;
+        }
+        .act-select:focus { border-color:#2d2d2d; }
+
+        /* 记录卡片 */
+        .records-card { flex:1 1 360px; max-width:460px; padding:36px; }
+        .records-card h3 { font-size:18px; letter-spacing:4px; margin-bottom:24px; font-weight:400; }
+        .record-list { max-height:500px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+        .record-list::-webkit-scrollbar { width:3px; }
+        .record-list::-webkit-scrollbar-thumb { background:#d4cfc8; }
+        .record-item {
+            display:flex; align-items:center; gap:14px; padding:14px 16px;
+            background:#fff; border:1px solid #f0ece8; border-radius:3px; transition:.3s;
+        }
+        .record-item:hover { border-color:#d4cfc8; }
+        .record-icon { font-size:20px; flex-shrink:0; opacity:.6; }
+        .record-info { flex:1; }
+        .record-info .name { font-size:14px; color:#2d2d2d; }
+        .record-info .time { font-size:12px; color:#c4bfb8; margin-top:2px; }
+        .badge { padding:3px 12px; font-size:11px; letter-spacing:1px; border:1px solid; border-radius:0; }
+        .badge-0 { color:#a09888; border-color:#e8e4df; }
+        .badge-1 { color:#5a8a5a; border-color:#c8dcc8; }
+        .qr-btn {
+            padding:4px 12px; border:1px solid #d4cfc8; background:#fff;
+            font-size:11px; color:#a09888; cursor:pointer; transition:.3s; font-family:inherit;
+        }
+        .qr-btn:hover { border-color:#2d2d2d; color:#2d2d2d; }
+        .empty-state { text-align:center; padding:60px 20px; color:#c4bfb8; font-size:14px; letter-spacing:2px; }
+
+        /* 弹窗 */
+        .modal {
+            display:none; position:fixed; inset:0;
+            background:rgba(250,248,245,.92); backdrop-filter:blur(8px);
+            justify-content:center; align-items:center; z-index:1000;
+        }
+        .modal-content {
+            background:#fff; padding:48px 44px; border:1px solid #e8e4df;
+            text-align:center; max-width:380px; border-radius:3px;
+            box-shadow:0 4px 30px rgba(0,0,0,.06); animation:popIn .4s;
+        }
+        .modal-content h2 { font-size:22px; letter-spacing:4px; font-weight:400; margin-bottom:16px; }
+        .modal-content img { width:160px; margin:16px 0; border:1px solid #e8e4df; }
+        .modal-content .prize-name { font-size:20px; color:#2d2d2d; letter-spacing:2px; margin:8px 0; }
+        .modal-content .blessing { font-size:14px; color:#a09888; margin:12px 0 20px; letter-spacing:1px; line-height:1.8; }
+        .modal-content .code { font-family:monospace; font-size:18px; letter-spacing:4px; color:#2d2d2d; margin:8px 0; }
+        @keyframes popIn { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
+        @media(max-width:768px) {
+            .container{padding:20px 12px;gap:20px}
+            .wheel-wrapper{width:300px;height:300px}
+            canvas#wheelCanvas{width:300px;height:300px}
+            .wheel-card,.records-card{padding:20px}
+        }
+    </style>
+</head>
+<body class="jp-style">
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+<canvas id="particles"></canvas>
+
+<!-- 导航 -->
+<nav class="jp-nav">
+    <span class="jp-nav-brand">幸运大转盘</span>
+    <div class="jp-nav-right">
+        <a href="ranking.html" style="color:#a09888;text-decoration:none;font-size:13px;letter-spacing:1px;transition:.3s" onmouseover="this.style.color='#2d2d2d'" onmouseout="this.style.color='#a09888'">排行榜</a>
+        <span id="welcomeMsg" style="animation:fadeIn .6s">欢迎回来</span>
+        <button onclick="logout()" style="border:1px solid #d4cfc8;background:#fff;color:#a09888;padding:6px 16px;font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:2px;transition:.3s" onmouseover="this.style.borderColor='#2d2d2d';this.style.color='#2d2d2d'" onmouseout="this.style.borderColor='#d4cfc8';this.style.color='#a09888'">退出</button>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- 转盘 -->
+    <div class="jp-card wheel-card fade-in-up">
+        <div class="wheel-title">幸运大转盘</div>
+        <div class="wheel-sub">转动转盘，赢取惊喜</div>
+        <div class="jp-divider"></div>
+
+        <div class="wheel-wrapper">
+            <canvas id="wheelCanvas" width="380" height="380"></canvas>
+            <div class="pointer"></div>
+            <div class="center-dot" id="centerBtn" title="点击抽奖">转</div>
+        </div>
+
+        <select id="activitySelect" class="act-select">
+            <option value="">选择抽奖活动</option>
+        </select>
+        <br>
+        <button class="jp-btn jp-btn-primary" id="spinBtn" style="letter-spacing:6px;padding:12px 48px">开 始 抽 奖</button>
+    </div>
+
+    <!-- 记录 -->
+    <div class="jp-card records-card fade-in-up-1">
+        <h3>中奖记录</h3>
+        <div class="jp-divider" style="margin-bottom:20px"></div>
+        <div class="record-list" id="winningList">
+            <div class="empty-state">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- 中奖弹窗 -->
+<div id="winModal" class="modal">
+    <div class="modal-content">
+        <h2>恭喜中奖</h2>
+        <div class="jp-divider"></div>
+        <img id="winPrizeImg" src="" alt="奖品" onerror="this.style.display='none'">
+        <div class="prize-name" id="winPrizeName"></div>
+        <div class="blessing" id="blessingText"></div>
+        <button class="jp-btn jp-btn-primary" onclick="closeWinModal()" style="letter-spacing:4px">好 的</button>
+    </div>
+</div>
+
+<!-- 二维码弹窗 -->
+<div id="qrModal" class="modal">
+    <div class="modal-content">
+        <h2>兑奖凭证</h2>
+        <div class="jp-divider"></div>
+        <img id="qrCodeImg" src="" alt="QR" style="width:160px">
+        <div class="code" id="claimCodeText"></div>
+        <button class="jp-btn" onclick="closeQrModal()" style="margin-top:16px;letter-spacing:4px">关 闭</button>
+    </div>
+</div>
+
+<script>
+let user=null,activityId=null,segments=[],isSpinning=false;
+const canvas=document.getElementById('wheelCanvas'),ctx=canvas.getContext('2d');
+const size=380,cx=size/2,cy=size/2,radius=size/2-4;
+// 柔和配色（替换原来的霓虹色）
+const colors=['#e8d5c4','#c4d8e8','#d4e8c4','#e8c4d8','#c4e8d8','#d8c4e8','#e8e4c4','#c4c8e8','#dce8c4','#e8d4c4'];
+
+// 粒子（淡色）
+const pc=document.getElementById('particles'),pctx=pc.getContext('2d');
+let particles=[];
+function rs(){pc.width=innerWidth;pc.height=innerHeight}rs();addEventListener('resize',rs);
+class P{constructor(){this.r()}r(){this.x=Math.random()*pc.width;this.y=Math.random()*pc.height;this.s=Math.random()*1.5+.5;this.vx=(Math.random()-.5)*.2;this.vy=(Math.random()-.5)*.2;this.o=Math.random()*.15+.05}
+u(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>pc.width||this.y<0||this.y>pc.height)this.r()}
+d(){pctx.beginPath();pctx.arc(this.x,this.y,this.s,0,Math.PI*2);pctx.fillStyle=`rgba(45,45,45,${this.o})`;pctx.fill()}}
+for(let i=0;i<50;i++)particles.push(new P);
+(function a(){pctx.clearRect(0,0,pc.width,pc.height);particles.forEach(p=>{p.u();p.d()});requestAnimationFrame(a)})();
+
+// 画转盘
+function drawWheel(rotation=0){
+    const count=segments.length||1,step=Math.PI*2/count;
+    ctx.clearRect(0,0,size,size);
+    for(let i=0;i<count;i++){
+        const start=i*step+rotation,end=(i+1)*step+rotation;
+        ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,radius,start,end);
+        ctx.fillStyle=colors[i%colors.length];ctx.fill();
+        ctx.strokeStyle='#faf8f5';ctx.lineWidth=2;ctx.stroke();
+        // 文字
+        ctx.save();ctx.translate(cx,cy);ctx.rotate(start+step/2);
+        ctx.fillStyle='#2d2d2d';
+        const name=segments[i]?.name||'?';
+        ctx.font=`${name.length>8?13:15}px "Noto Serif SC","PingFang SC","Microsoft YaHei",serif`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        const r2=radius*.65;
+        ctx.fillText(name.length>8?name.slice(0,7)+'..':name,r2,0);
+        ctx.restore();
+    }
+    // 外圈
+    ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);
+    ctx.strokeStyle='#d4cfc8';ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,radius+4,0,Math.PI*2);
+    ctx.strokeStyle='#e8e4df';ctx.lineWidth=1;ctx.stroke();
+}
+
+// 初始化
+async function init(){
+    try{
+        const[w,a,r]=await Promise.all([fetch('/api/welcome'),fetch('/api/activities'),fetch('/api/user/winningRecords')]);
+        const wd=await w.json();
+        if(wd.code===200){user=wd.data;document.getElementById('welcomeMsg').textContent=wd.data.message;}
+        const ad=await a.json(),sel=document.getElementById('activitySelect');
+        if(ad.code===200&&ad.data.length){
+            sel.innerHTML='<option value="">选择抽奖活动</option>'+ad.data.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+            sel.onchange=async()=>{if(sel.value){activityId=parseInt(sel.value);await loadWheel();}};
+        }else sel.innerHTML='<option>暂无活动</option>';
+        const rd=await r.json();renderRecords(rd.code===200?rd.data:[]);
+    }catch(e){console.error(e);}
+}
+async function loadWheel(){
+    if(!activityId)return;
+    const res=await fetch(`/api/prizePool/${activityId}`);
+    const data=await res.json();
+    segments=(data.code===200&&data.data?.length)?data.data.map(p=>({name:p.prizeName,prob:p.probability})):[{name:'暂无奖品',prob:1}];
+    drawWheel();
+}
+function renderRecords(records){
+    const el=document.getElementById('winningList');
+    if(!records.length){el.innerHTML='<div class="empty-state">转动转盘，赢取你的第一份奖品</div>';return;}
+    el.innerHTML=records.map(r=>`<div class="record-item fade-in-up"><div class="record-icon"> </div><div class="record-info"><div class="name">${r.prizeName}</div><div class="time">${r.drawTime||''}</div></div><span class="badge badge-${r.status}">${r.status===0?'待领取':'已领取'}</span>${r.status===0&&r.qrCode?`<button class="qr-btn" onclick="showQR('${r.qrCode}','${r.claimCode}')">兑奖码</button>`:''}</div>`).join('');
+}
+
+// 抽奖
+document.getElementById('spinBtn').onclick=spin;
+document.getElementById('centerBtn').onclick=spin;
+async function spin(){
+    if(!activityId)return alert('请先选择活动');
+    if(isSpinning)return;isSpinning=true;
+    document.getElementById('spinBtn').disabled=true;
+    document.getElementById('centerBtn').style.pointerEvents='none';
+    let apiResult=null;const wa=startWaiting();
+    try{const res=await fetch('/api/draw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({activityId})});apiResult=await res.json();}catch(e){console.error(e);}
+    cancelAnimationFrame(wa);
+    if(apiResult&&apiResult.code===200){
+        animateTo(apiResult.data.prizeName,()=>{showWin(apiResult.data);fetch('/api/user/winningRecords').then(r=>r.json()).then(d=>{if(d.code===200)renderRecords(d.data);});});
+    }else{
+        const msg=apiResult?(apiResult.message||'很遗憾，未中奖'):'网络错误';
+        animateRand(()=>{alert(msg);isSpinning=false;document.getElementById('spinBtn').disabled=false;document.getElementById('centerBtn').style.pointerEvents='auto';});
+    }
+}
+let wa=0;
+function startWaiting(){function f(){wa+=.06;drawWheel(wa);return requestAnimationFrame(f);}return f();}
+function animateRand(cb){const dur=1200,sa=wa,ta=sa+6*Math.PI+Math.random()*Math.PI*2;let st=null;
+function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel(sa+(ta-sa)*e);if(p<1)requestAnimationFrame(f);else cb();}requestAnimationFrame(f);}
+function animateTo(targetName,cb){
+    let ta=0;const step=Math.PI*2/segments.length;
+    for(let i=0;i<segments.length;i++){if(segments[i].name===targetName){ta=Math.PI*2-(i*step)-step/2;break;}}
+    const dur=2200,spins=8;let st=null;
+    function f(ts){if(!st)st=ts;const p=Math.min(1,(ts-st)/dur),e=1-Math.pow(1-p,3.5);drawWheel((spins*Math.PI*2+ta)*e);if(p<1)requestAnimationFrame(f);else{isSpinning=false;document.getElementById('spinBtn').disabled=false;document.getElementById('centerBtn').style.pointerEvents='auto';cb();}}
+    requestAnimationFrame(f);
+}
+function showWin(data){
+    document.getElementById('winPrizeName').textContent=data.prizeName;
+    const img=document.getElementById('winPrizeImg');img.src=data.prizeImageUrl||'';img.style.display=data.prizeImageUrl?'block':'none';
+    document.getElementById('blessingText').textContent=data.blessing||'恭喜中奖，好运常伴！';
+    document.getElementById('winModal').style.display='flex';
+    setTimeout(()=>{if(document.getElementById('winModal').style.display==='flex')closeWinModal();},4000);
+}
+function closeWinModal(){document.getElementById('winModal').style.display='none';}
+function showQR(q,c){document.getElementById('qrCodeImg').src=q;document.getElementById('claimCodeText').textContent='核销码：'+c;document.getElementById('qrModal').style.display='flex';}
+function closeQrModal(){document.getElementById('qrModal').style.display='none';}
+async function logout(){await fetch('/api/logout');location.href='blogin.html';}
+init();
+</script>
+</body>
+</html>

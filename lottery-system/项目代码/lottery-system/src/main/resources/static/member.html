@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>会员中心 - 幸运抽奖</title>
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+        font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    .navbar {
+        background: rgba(255,255,255,0.95);
+        box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+    .navbar-brand { font-size: 24px; font-weight: bold; color: #667eea !important; }
+    .navbar-brand i { margin-right: 10px; }
+    .user-info { display: flex; align-items: center; gap: 15px; }
+    .user-avatar {
+        width: 40px; height: 40px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: bold; font-size: 18px;
+    }
+    .user-name { font-weight: 500; color: #333; }
+    .logout-btn {
+        background: none; border: none; color: #ff6b6b;
+        cursor: pointer; transition: all 0.3s;
+    }
+    .logout-btn:hover { color: #ff4757; transform: scale(1.05); }
+    .welcome-card {
+        background: white; border-radius: 20px; padding: 40px;
+        margin: 30px 0; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .welcome-card h1 { font-size: 36px; color: #333; margin-bottom: 15px; }
+    .welcome-card p { font-size: 18px; color: #666; line-height: 1.6; }
+    .welcome-card i { font-size: 80px; color: #667eea; margin-bottom: 20px; }
+    .lottery-card {
+        background: white; border-radius: 20px; padding: 30px;
+        margin-bottom: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+    .lottery-card h3 {
+        font-size: 24px; color: #333; margin-bottom: 20px;
+        border-left: 4px solid #667eea; padding-left: 15px; display: inline-block;
+    }
+    .spin-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white; border: none; padding: 15px 50px;
+        border-radius: 50px; font-size: 20px; font-weight: bold;
+        margin-top: 20px; cursor: pointer; transition: all 0.3s;
+    }
+    .spin-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+    .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .feature-card {
+        background: white; border-radius: 20px; padding: 30px;
+        text-align: center; transition: all 0.3s; height: 100%;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08); cursor: pointer;
+    }
+    .feature-card:hover { transform: translateY(-10px); box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
+    .feature-card i { font-size: 48px; color: #667eea; margin-bottom: 20px; }
+    .feature-card h4 { font-size: 20px; color: #333; margin-bottom: 10px; }
+    .feature-card p { font-size: 14px; color: #999; }
+    .record-card {
+        background: white; border-radius: 20px; padding: 30px;
+        margin-top: 30px; margin-bottom: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+    .record-card h3 {
+        font-size: 24px; color: #333; margin-bottom: 20px;
+        border-left: 4px solid #667eea; padding-left: 15px;
+    }
+    .record-item {
+        padding: 15px; border-bottom: 1px solid #eee;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .record-item:hover { background: #f8f9fa; }
+    .record-prize { font-weight: bold; color: #667eea; }
+    .record-time { color: #999; font-size: 14px; }
+    .empty-record { text-align: center; padding: 40px; color: #999; }
+    .result-modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); display: none;
+        justify-content: center; align-items: center; z-index: 2000;
+    }
+    .result-content {
+        background: white; border-radius: 20px; padding: 40px;
+        text-align: center; max-width: 400px;
+    }
+    .result-content i { font-size: 80px; margin-bottom: 20px; }
+    .result-content .win { color: #ff6b6b; }
+    .result-content .lose { color: #999; }
+    .result-content h2 { font-size: 28px; margin-bottom: 20px; }
+    .result-content p { font-size: 18px; color: #666; margin-bottom: 30px; }
+    .result-content button {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white; border: none; padding: 10px 30px;
+        border-radius: 50px; cursor: pointer;
+    }
+    .footer { text-align: center; padding: 30px; color: rgba(255,255,255,0.8); }
+    .loading { text-align: center; padding: 40px; }
+    .loading i { font-size: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .no-activity {
+        background: #fff3cd; color: #856404; padding: 15px;
+        border-radius: 10px; margin-bottom: 20px; text-align: center;
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="container">
+    <a class="navbar-brand" href="#"><i class="fas fa-gift"></i> 幸运抽奖</a>
+    <div class="user-info" id="userInfo">
+      <div class="user-avatar" id="userAvatar">会</div>
+      <span class="user-name" id="userName">加载中...</span>
+      <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 退出</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="welcome-card">
+    <i class="fas fa-trophy"></i>
+    <h1>欢迎回来，<span id="welcomeName">会员</span>！</h1>
+    <p>点击下方按钮，试试您的手气吧！</p>
+  </div>
+
+  <div class="lottery-card">
+    <h3><i class="fas fa-spinner"></i> 幸运大转盘</h3>
+    <div id="activityStatus"></div>
+    <button class="spin-btn" onclick="spin()" id="spinBtn">开始抽奖</button>
+    <p style="margin-top: 15px; color: #999;">点击按钮，幸运降临！</p>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="feature-card" onclick="showMyRecords()">
+        <i class="fas fa-medal"></i>
+        <h4>我的中奖</h4>
+        <p>查看您所有的中奖记录</p>
+      </div>
+    </div>
+    <div class="col-md-6 mb-4">
+      <div class="feature-card" onclick="showStats()">
+        <i class="fas fa-chart-line"></i>
+        <h4>抽奖统计</h4>
+        <p>查看您的抽奖次数和中奖率</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="record-card">
+    <h3><i class="fas fa-history"></i> 我的中奖记录</h3>
+    <div id="recentRecords"></div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>&copy; 2026 幸运抽奖系统 | 祝您好运连连！</p>
+</div>
+
+<div id="resultModal" class="result-modal">
+  <div class="result-content">
+    <i class="fas fa-gift win" id="resultIcon"></i>
+    <h2 id="resultTitle">恭喜中奖！</h2>
+    <p id="resultMessage">您获得了</p>
+    <button onclick="closeModal()">继续抽奖</button>
+  </div>
+</div>
+
+<script>
+  var userToken = localStorage.getItem("user_token");
+  var userIdentity = localStorage.getItem("user_identity");
+  var userRealName = localStorage.getItem("user_real_name") || "会员";
+  var isSpinning = false;
+  var hasActivity = false;
+
+  if (!userToken) {
+      alert("请先登录");
+      location.href = "blogin.html";
+  }
+
+  if (userIdentity !== "NORMAL") {
+      location.href = "admin.html";
+  }
+
+  // 显示用户真实姓名
+  function loadUserInfo() {
+      $('#userName').text(userRealName);
+      $('#welcomeName').text(userRealName);
+      $('#userAvatar').text(userRealName.charAt(0));
+  }
+
+  // 检查是否有可用的抽奖活动
+  function checkActivity() {
+      $.ajax({
+          url: '/activity/find-list',
+          type: 'GET',
+          data: { currentPage: 1, pageSize: 10 },
+          headers: { 'user_token': userToken },
+          success: function(result) {
+              if (result.code === 200 && result.data && result.data.records) {
+                  var activities = result.data.records;
+                  var hasActive = activities.some(function(act) {
+                      return act.valid === true;
+                  });
+                  hasActivity = hasActive;
+                  if (!hasActive) {
+                      $('#activityStatus').html('<div class="no-activity"><i class="fas fa-info-circle"></i> 暂无进行中的抽奖活动，请等待管理员创建活动后再来抽奖！</div>');
+                      $('#spinBtn').prop('disabled', true);
+                  } else {
+                      $('#activityStatus').html('');
+                      $('#spinBtn').prop('disabled', false);
+                  }
+              }
+          }
+      });
+  }
+
+  function spin() {
+      if (isSpinning) {
+          toastr.warning('抽奖中，请稍后...');
+          return;
+      }
+      if (!hasActivity) {
+          toastr.warning('暂无进行中的抽奖活动，请等待管理员创建活动！');
+          return;
+      }
+      isSpinning = true;
+      $('#spinBtn').prop('disabled', true);
+
+      $.ajax({
+          url: '/draw/user-draw',
+          type: 'POST',
+          headers: { 'user_token': userToken },
+          success: function(result) {
+              isSpinning = false;
+              $('#spinBtn').prop('disabled', false);
+              if (result.code === 200 && result.data) {
+                  var prize = result.data;
+                  showResult(true, prize.name);
+                  loadRecentRecords();
+              } else {
+                  showResult(false, null, result.msg || '很遗憾，这次没有中奖，下次加油哦！');
+              }
+          },
+          error: function() {
+              isSpinning = false;
+              $('#spinBtn').prop('disabled', false);
+              showResult(false, null, '抽奖失败，请重试');
+          }
+      });
+  }
+
+  function showResult(isWin, prizeName, message) {
+      if (isWin) {
+          $('#resultIcon').attr('class', 'fas fa-trophy win');
+          $('#resultTitle').text('🎉 恭喜中奖！ 🎉');
+          $('#resultMessage').html(`您获得了 <strong style="color:#ff6b6b; font-size:24px;">${prizeName}</strong>！`);
+      } else {
+          $('#resultIcon').attr('class', 'fas fa-heart-broken lose');
+          $('#resultTitle').text('😔 很遗憾 😔');
+          $('#resultMessage').html(message || '这次没有中奖，下次一定会好运的！继续加油！');
+      }
+      $('#resultModal').fadeIn();
+  }
+
+  function closeModal() {
+      $('#resultModal').fadeOut();
+  }
+
+  // 加载所有中奖记录
+  function loadRecentRecords() {
+      $.ajax({
+          url: '/winning-records/my',
+          type: 'POST',
+          contentType: 'application/json',
+          headers: { 'user_token': userToken },
+          success: function(result) {
+              if (result.code === 200 && result.data && result.data.length > 0) {
+                  var records = result.data;
+                  var html = '';
+                  records.forEach(function(record) {
+                      var tierName = record.prizeTier || '参与奖';
+                      var tierClass = tierName === '参与奖' ? 'badge-secondary' : 'badge-success';
+                      html += `
+                          <div class="record-item">
+                              <div>
+                                  <span class="record-prize">${record.prizeName}</span>
+                                  <span class="badge ${tierClass} ml-2">${tierName}</span>
+                              </div>
+                              <div class="record-time">${formatDate(record.winningTime)}</div>
+                          </div>
+                      `;
+                  });
+                  $('#recentRecords').html(html);
+              } else {
+                  $('#recentRecords').html(`
+                      <div class="empty-record">
+                          <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px;"></i>
+                          <p>暂无中奖记录，快去抽奖吧！</p>
+                      </div>
+                  `);
+              }
+          }
+      });
+  }
+
+  function showMyRecords() {
+      loadRecentRecords();
+      toastr.info('已刷新中奖记录');
+  }
+
+  function showStats() {
+      $.ajax({
+          url: '/winning-records/stats',
+          type: 'GET',
+          headers: { 'user_token': userToken },
+          success: function(result) {
+              if (result.code === 200 && result.data) {
+                  var stats = result.data;
+                  alert(`📊 抽奖统计 📊\n\n🎲 总抽奖次数: ${stats.totalDraws || 0}\n🏆 中奖次数: ${stats.totalWins || 0}\n📈 中奖率: ${(stats.winRate || 0).toFixed(1)}%\n\n继续加油！好运就在下一次！`);
+              } else {
+                  alert('暂无抽奖数据，快去抽奖吧！');
+              }
+          }
+      });
+  }
+
+  function formatDate(dateString) {
+      if (!dateString) return '';
+      var date = new Date(dateString);
+      var year = date.getFullYear();
+      var month = String(date.getMonth() + 1).padStart(2, '0');
+      var day = String(date.getDate()).padStart(2, '0');
+      var hour = String(date.getHours()).padStart(2, '0');
+      var minute = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hour}:${minute}`;
+  }
+
+  function logout() {
+      if (confirm('确定要退出登录吗？')) {
+          localStorage.removeItem("user_token");
+          localStorage.removeItem("user_identity");
+          localStorage.removeItem("user_real_name");
+          localStorage.removeItem("user_login_name");
+          location.href = "blogin.html";
+      }
+  }
+
+  $(document).ready(function() {
+      loadUserInfo();
+      checkActivity();
+      loadRecentRecords();
+  });
+</script>
+</body>
+</html>

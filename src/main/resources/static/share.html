@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>中奖分享 - 抽奖系统</title>
+    <link rel="stylesheet" href="/css/glass.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 40px 20px; }
+        .share-card { width: 420px; padding: 48px 40px; text-align: center; }
+        .share-card h2 { font-weight: 400; font-size: 22px; letter-spacing: 6px; margin-bottom: 8px; }
+        .prize-icon { font-size: 48px; margin: 24px 0 8px; opacity: .7; }
+        .prize-name { font-size: 24px; color: #2d2d2d; letter-spacing: 2px; margin: 16px 0 8px; }
+        .user-name { font-size: 14px; color: #a09888; letter-spacing: 1px; margin-bottom: 24px; }
+        .user-name strong { color: #2d2d2d; }
+        .qrcode { width: 140px; height: 140px; margin: 0 auto 24px; border: 1px solid #e8e4df; padding: 8px; }
+        .qrcode img { width: 100%; height: 100%; display: block; }
+        .tip { font-size: 12px; color: #c4bfb8; letter-spacing: 1px; margin-bottom: 28px; }
+        .share-btn { margin-top: 0; }
+    </style>
+</head>
+<body class="jp-style">
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+
+<div class="jp-card share-card fade-in-up">
+    <h2>恭喜中奖</h2>
+    <div class="jp-divider"></div>
+    <div class="prize-icon fade-in-up-1">&#x1F3C6;</div>
+    <div class="prize-name fade-in-up-1" id="prizeName">加载中...</div>
+    <div class="user-name fade-in-up-2" id="userName"></div>
+    <div class="qrcode fade-in-up-2" id="qrcode">
+        <img id="qrImg" src="">
+    </div>
+    <div class="tip fade-in-up-3">长按保存图片，分享到朋友圈</div>
+    <button class="jp-btn jp-btn-primary share-btn fade-in-up-3" onclick="downloadPoster()">保 存 海 报</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const prizeName = urlParams.get('prize') || '神秘大奖';
+    const userName = urlParams.get('user') || '幸运用户';
+
+    document.getElementById('prizeName').innerText = prizeName;
+    document.getElementById('userName').innerHTML = `恭喜 <strong>${userName}</strong> 抽中`;
+
+    // 生成二维码
+    const shareUrl = window.location.origin + '/register.html';
+    const qrImg = document.getElementById('qrImg');
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
+
+    async function downloadPoster() {
+        const element = document.querySelector('.share-card');
+        try {
+            const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#faf8f5' });
+            const link = document.createElement('a');
+            link.download = '中奖海报.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        } catch (error) {
+            alert('生成失败，请截图保存');
+        }
+    }
+</script>
+</body>
+</html>

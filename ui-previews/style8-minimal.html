@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>风格8：日式极简风</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Noto Serif SC','Songti SC','SimSun',Georgia,serif;
+  min-height:100vh;display:flex;justify-content:center;align-items:center;
+  background:#faf8f5;color:#2d2d2d;
+}
+.card{
+  width:420px;padding:48px 44px;border-radius:2px;
+  background:#fff;
+  border:1px solid #e8e4df;
+  box-shadow:0 2px 20px rgba(0,0,0,.04);
+  animation:up .8s;
+}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.logo{text-align:center;font-size:24px;font-weight:400;margin-bottom:8px;letter-spacing:8px;color:#2d2d2d}
+.sub{text-align:center;color:#a09888;font-size:13px;margin-bottom:36px;letter-spacing:2px}
+.divider{width:40px;height:1px;background:#d4cfc8;margin:0 auto 32px}
+label{display:block;font-size:12px;font-weight:400;color:#a09888;margin-bottom:8px;letter-spacing:2px;text-transform:uppercase}
+input{width:100%;padding:12px 0;border:none;border-bottom:1px solid #d4cfc8;font-size:15px;color:#2d2d2d;outline:none;transition:.3s;margin-bottom:24px;background:transparent;font-family:inherit}
+input:focus{border-bottom-color:#2d2d2d}
+input::placeholder{color:#c4bfb8;font-size:13px}
+.btn{
+  width:100%;padding:14px;border:1px solid #2d2d2d;border-radius:0;
+  background:transparent;color:#2d2d2d;font-size:14px;font-weight:400;
+  cursor:pointer;letter-spacing:4px;transition:.3s;margin-top:8px;
+  font-family:inherit;
+}
+.btn:hover{background:#2d2d2d;color:#faf8f5}
+.link{text-align:center;margin-top:24px;font-size:13px;color:#a09888;letter-spacing:1px}
+.link a{color:#2d2d2d;text-decoration:none;border-bottom:1px solid #d4cfc8;padding-bottom:1px}
+.link a:hover{border-bottom-color:#2d2d2d}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">幸運大轉盤</div>
+  <div class="sub">日式极简风 — 参考 MUJI / 无印良品</div>
+  <div class="divider"></div>
+  <label>手机号</label>
+  <input placeholder="请输入手机号">
+  <label>密码</label>
+  <input type="password" placeholder="请输入密码">
+  <button class="btn">登 录</button>
+  <div class="link">没有账号？<a href="#">立即注册</a></div>
+</div>
+</body>
+</html>

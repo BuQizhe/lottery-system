@@ -1,0 +1,54 @@
+# ========== 编译文件 ==========
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ========== IDE 文件 ==========
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project
+.classpath
+.vscode/
+.DS_Store
+
+# ========== 日志文件 ==========
+*.log
+logs/
+startup_error.log
+
+# ========== 敏感配置（不提交） ==========
+application-dev.properties
+application-local.properties
+application-prod.properties
+
+# ========== 系统文件 ==========
+Thumbs.db
+desktop.ini
+
+# ========== Maven 临时文件 ==========
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+# ========== 前端临时文件 ==========
+node_modules/
+npm-debug.log
+
+# ========== 数据库文件 ==========
+*.sql
+*.db
+*.mdb
+
+# ========== 图片上传目录 ==========
+lottery-pics/
+pic/
+
+# ========== 其他 ==========
+*.bak
+*.tmp
+*.swp
+*~

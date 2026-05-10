@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>登录页面</title>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./css/base.css">
+    <link rel="stylesheet" href="./css/login.css">
+</head>
+<body class="login-page">
+<div class="login-box row">
+    <div class="img-box col-sm-6 col-md-6 col-lg-7 col-xl-7">
+        <img src="./pic/login-left.png" class="img-fluid" alt srcset>
+    </div>
+    <div class="login-container col-sm-6 col-md-6 col-lg-5 col-xl-5">
+
+        <div class="tab-box">
+            <span class="active tab-span" data-form="loginForm">密码登录</span>
+            <span class="tab-span" data-form="emailCodeForm">邮箱验证码登录</span>
+        </div>
+
+        <!-- 密码登录表单 -->
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginName">手机号/邮箱</label>
+                <input class="form-control" type="text" id="loginName"
+                       name="loginName"
+                       required placeholder="请输入手机号或邮箱">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input class="form-control" type="password"
+                       id="password" name="password"
+                       required placeholder="请输入密码">
+            </div>
+            <button type="submit"
+                    class="btn btn-primary btn-block login-btn">登录</button>
+            <div class="error"></div>
+        </form>
+
+        <!-- 邮箱验证码登录表单 -->
+        <form id="emailCodeForm" style="display: none;">
+            <div class="form-group">
+                <label for="loginEmail">邮箱</label>
+                <input class="form-control" type="email" id="loginEmail"
+                       name="loginEmail"
+                       required placeholder="请输入邮箱">
+            </div>
+            <div class="form-group">
+                <label for="verificationCode">验证码</label>
+                <div class="code-box">
+                    <input class="form-control" type="text"
+                           id="verificationCode" name="verificationCode"
+                           required placeholder="请输入验证码">
+                    <div class="btn btn-primary" id="getEmailCode">获取验证码</div>
+                </div>
+            </div>
+            <button type="submit"
+                    class="btn btn-primary btn-block login-btn">登录</button>
+            <div class="error"></div>
+        </form>
+
+        <div class="register-link">
+            还没有账号，去<a href="register.html">注册</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+<script src="https://cdn.staticfile.org/twitter-bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    // 获取当前登录用户的真实姓名
+    function fetchCurrentUserRealName(token, callback) {
+        $.ajax({
+            url: '/user/current',
+            type: 'GET',
+            headers: { 'user_token': token },
+            success: function(result) {
+                if (result.code === 200 && result.data) {
+                    var user = result.data;
+                    localStorage.setItem("user_real_name", user.userName);
+                    localStorage.setItem("user_id", user.userId);
+                    localStorage.setItem("user_email", user.email);
+                }
+                if (callback) callback();
+            },
+            error: function() {
+                if (callback) callback();
+            }
+        });
+    }
+
+    // 密码登录表单验证
+    $("#loginForm").validate({
+      rules: {
+        loginName: "required",
+        password: {
+          required: true,
+          minlength: 6
+        }
+      },
+      messages: {
+        loginName: "请输入手机号或邮箱",
+        password: {
+          required: "请输入密码",
+          minlength: "密码长度至少为6个字符"
+        }
+      },
+      submitHandler: function(form) {
+        var loginName = $('#loginName').val();
+        var password = $('#password').val();
+
+        $('.error').text('');
+        $.ajax({
+          url: '/password/login',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+              loginName: loginName,
+              password: password
+          }),
+          success: function(result) {
+              if (result.code != 200) {
+                  alert("登录失败！" + result.msg);
+              } else {
+                  var token = result.data.token;
+                  var identity = result.data.identity;
+                  localStorage.setItem("user_token", token);
+                  localStorage.setItem("user_identity", identity);
+                  localStorage.setItem("user_login_name", loginName);
+
+                  // 获取当前用户真实姓名
+                  fetchCurrentUserRealName(token, function() {
+                      if (identity === "ADMIN") {
+                          location.assign("admin.html");
+                      } else {
+                          location.assign("member.html");
+                      }
+                  });
+              }
+          },
+          error: function() {
+              alert("登录请求失败，请检查网络");
+          }
+        });
+        return false;
+      }
+    });
+
+    // tab切换
+    $('.tab-box span').click(function(e){
+        let formId = '#' + e.target.dataset.form;
+        $(this).addClass('active');
+        $(this).siblings().removeClass('active');
+        $('form').hide();
+        $(formId).show();
+    });
+
+    // 获取邮箱验证码
+    var timer = null;
+    $('#getEmailCode').click(function(e){
+        var email = $('#loginEmail').val();
+        if (!email) {
+            alert('请先输入邮箱');
+            return;
+        }
+        var txt = $(this).text();
+        var num = 60;
+        if(txt.indexOf('获取') !== -1){
+            $('#getEmailCode').text(num + 's');
+            sendEmailCode();
+            timer && clearInterval(timer);
+            timer = setInterval(function(){
+                if(num > 1){
+                    num--;
+                    $('#getEmailCode').text(num + 's');
+                }else{
+                    timer && clearInterval(timer);
+                    $('#getEmailCode').text('重新获取');
+                }
+            }, 1000);
+        }
+    });
+
+    function sendEmailCode() {
+        var email = $('#loginEmail').val();
+        $.ajax({
+            url: '/email-code/send',
+            type: 'GET',
+            data: { email: email },
+            success: function(result) {
+                if (result.code != 200) {
+                    timer && clearInterval(timer);
+                    $('#getEmailCode').text('重新获取');
+                    alert('验证码获取失败：' + result.msg);
+                } else {
+                    alert('验证码已发送到您的邮箱');
+                }
+            },
+            error: function() {
+                timer && clearInterval(timer);
+                $('#getEmailCode').text('重新获取');
+                alert('验证码获取失败，请检查网络');
+            }
+        });
+    }
+
+    // 邮箱验证码登录表单验证
+    $("#emailCodeForm").validate({
+        rules: {
+            loginEmail: {
+                required: true,
+                email: true
+            },
+            verificationCode: "required"
+        },
+        messages: {
+            loginEmail: "请输入有效的邮箱地址",
+            verificationCode: "请输入验证码"
+        },
+        submitHandler: function(form) {
+            var email = $('#loginEmail').val();
+            var verificationCode = $('#verificationCode').val();
+            $('.error').text('');
+            $.ajax({
+                url: '/email-code/login',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({email: email, verificationCode: verificationCode}),
+                success: function(result) {
+                    if (result.code != 200) {
+                        alert("登录失败！" + result.msg);
+                    } else {
+                        var token = result.data.token;
+                        var identity = result.data.identity;
+                        localStorage.setItem("user_token", token);
+                        localStorage.setItem("user_identity", identity);
+                        localStorage.setItem("user_login_name", email);
+
+                        fetchCurrentUserRealName(token, function() {
+                            if (identity === "ADMIN") {
+                                location.assign("admin.html");
+                            } else {
+                                location.assign("member.html");
+                            }
+                        });
+                    }
+                },
+                error: function() {
+                    alert("登录请求失败，请检查网络");
+                }
+            });
+            return false;
+        }
+    });
+</script>
+</body>
+</html>

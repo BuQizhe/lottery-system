@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>人员列表</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./css/base.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 0 30px;
+        }
+        .user-table {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .user-table h2 {
+            background: #fff;
+            width: 100%;
+            font-weight: 600;
+            font-size: 18px;
+            color: #000000;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+        .table-box {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .table td, .table th {
+            border: none;
+        }
+        .table thead th {
+            background-color: #f7f7f7;
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 16px;
+            color: #999999;
+            height: 60px;
+            line-height: 60px;
+            padding: 0;
+            position: sticky;
+            top: 0;
+        }
+        .user-table th, .user-table td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 10px;
+            height: 50px;
+        }
+        .delete-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+
+        /* 分页样式 */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0;
+            gap: 10px;
+            flex-shrink: 0;
+            background: #fff;
+            border-top: 1px solid #eee;
+        }
+        .pagination-container button {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            color: #333;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .pagination-container button:hover:not(:disabled) {
+            background-color: #f0f0f0;
+        }
+        .pagination-container button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination-container .page-info {
+            margin: 0 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        .pagination-container input {
+            width: 60px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .pagination-container .goto-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+        .pagination-container .goto-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div class="user-table">
+    <h2>人员列表</h2>
+    <div class="table-box">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>人员id</th>
+                <th>姓名</th>
+                <th>身份</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody id="userList">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页控件 -->
+    <div class="pagination-container">
+        <button id="firstPageBtn" onclick="goToPage(1)">首页</button>
+        <button id="prevPageBtn" onclick="goToPage(currentPage - 1)">上一页</button>
+        <span class="page-info">第 <span id="currentPageSpan">1</span> / <span id="totalPagesSpan">1</span> 页</span>
+        <button id="nextPageBtn" onclick="goToPage(currentPage + 1)">下一页</button>
+        <button id="lastPageBtn" onclick="goToPage(totalPages)">尾页</button>
+        <input type="number" id="pageInput" placeholder="页码" min="1">
+        <button class="goto-btn" onclick="goToPage(parseInt($('#pageInput').val()))">跳转</button>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+    var userToken = localStorage.getItem("user_token");
+    var currentPage = 1;
+    var pageSize = 10;
+    var totalPages = 1;
+    var totalRecords = 0;
+
+    // 加载用户数据
+    function fetchUserData(page) {
+        currentPage = page || 1;
+
+        $.ajax({
+            url: '/base-user/page-list',
+            type: 'GET',
+            data: {
+                page: currentPage,
+                size: pageSize
+            },
+            headers: {
+                "user_token": userToken
+            },
+            success: function(result) {
+                if (result.code != 200) {
+                    alert("查询用户列表失败！" + result.msg);
+                } else {
+                    var data = result.data;
+                    var users = data.records || [];
+                    totalRecords = data.total || 0;
+                    totalPages = Math.ceil(totalRecords / pageSize);
+
+                    // 更新分页显示
+                    updatePagination();
+
+                    // 渲染表格
+                    var userList = $('#userList');
+                    userList.empty();
+
+                    if (users.length === 0) {
+                        userList.append('<tr><td colspan="4" style="text-align:center">暂无数据</td></tr>');
+                    } else {
+                        users.forEach(function(user) {
+                            userList.append(
+                                '<tr>' +
+                                '<td>' + user.userId + '</td>' +
+                                '<td>' + user.userName + '</td>' +
+                                '<td>' + user.identity + '</td>' +
+                                '<td><button class="delete-btn" onclick="deleteUser(' + user.userId + ')">删除</button></td>' +
+                                '</tr>'
+                            );
+                        });
+                    }
+                }
+            },
+            error: function(err){
+                console.log(err);
+                if(err != null && err.status == 401){
+                    alert("用户未登录, 即将跳转到登录页!");
+                    window.parent.location.href = "/blogin.html";
+                }
+            }
+        });
+    }
+
+    // 更新分页控件状态
+    function updatePagination() {
+        $('#currentPageSpan').text(currentPage);
+        $('#totalPagesSpan').text(totalPages);
+
+        $('#firstPageBtn').prop('disabled', currentPage <= 1);
+        $('#prevPageBtn').prop('disabled', currentPage <= 1);
+        $('#nextPageBtn').prop('disabled', currentPage >= totalPages);
+        $('#lastPageBtn').prop('disabled', currentPage >= totalPages);
+
+        $('#pageInput').val(currentPage);
+    }
+
+    // 跳转到指定页面
+    function goToPage(page) {
+        if (page < 1 || page > totalPages || page == currentPage) {
+            if (page < 1) alert('已经是第一页');
+            if (page > totalPages) alert('已经是最后一页');
+            return;
+        }
+        fetchUserData(page);
+    }
+
+    // 删除用户函数
+    function deleteUser(userId) {
+        if (confirm('确定要删除该用户吗？')) {
+            $.ajax({
+                url: '/user/delete?userId=' + userId,
+                type: 'DELETE',
+                headers: {
+                    'user_token': userToken
+                },
+                success: function(result) {
+                    if (result.code == 200) {
+                        alert('删除成功');
+                        fetchUserData(currentPage);
+                    } else {
+                        alert('删除失败：' + result.msg);
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.status == 401) {
+                        alert("用户未登录, 即将跳转到登录页!");
+                        window.parent.location.href = "/blogin.html";
+                    } else {
+                        alert('删除失败，请重试');
+                    }
+                }
+            });
+        }
+    }
+
+    // 回车跳转
+    $(document).ready(function() {
+        fetchUserData(1);
+
+        $('#pageInput').on('keypress', function(e) {
+            if (e.which === 13) {
+                var page = parseInt($(this).val());
+                if (!isNaN(page)) {
+                    goToPage(page);
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>

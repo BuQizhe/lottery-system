@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 · 幸运大转盘</title>
+    <link rel="stylesheet" href="/css/glass.css">
+    <style>
+        body {
+            min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+        .card {
+            width: 420px; padding: 48px 44px;
+            animation: fadeInUp .6s both;
+        }
+        .logo { text-align: center; font-size: 24px; letter-spacing: 8px; margin-bottom: 8px; }
+        .sub { text-align: center; color: #a09888; font-size: 13px; letter-spacing: 2px; margin-bottom: 36px; }
+        .tabs { display: flex; gap: 0; margin-bottom: 32px; border-bottom: 1px solid #e8e4df; }
+        .tab {
+            flex: 1; text-align: center; padding: 10px 0; border: none; background: none;
+            font-size: 13px; color: #a09888; cursor: pointer; transition: .3s;
+            border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: inherit;
+            letter-spacing: 1px;
+        }
+        .tab.on { color: #2d2d2d; border-bottom-color: #2d2d2d; }
+        .tab:hover { color: #2d2d2d; }
+        .field { margin-bottom: 24px; }
+        .code-group { display: flex; gap: 12px; align-items: flex-end; }
+        .code-group .field { flex: 1; margin-bottom: 0; }
+        .code-group button {
+            padding: 10px 16px; border: 1px solid #d4cfc8; background: #fff;
+            font-size: 12px; color: #a09888; cursor: pointer; white-space: nowrap;
+            letter-spacing: 1px; transition: .3s; font-family: inherit;
+        }
+        .code-group button:hover { border-color: #2d2d2d; color: #2d2d2d; }
+        .code-group button:disabled { opacity: .4; cursor: not-allowed; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .link { text-align: center; margin-top: 24px; font-size: 13px; color: #a09888; letter-spacing: 1px; }
+        .link a { color: #2d2d2d; text-decoration: none; border-bottom: 1px solid #d4cfc8; padding-bottom: 1px; transition: .3s; }
+        .link a:hover { border-bottom-color: #2d2d2d; }
+    </style>
+</head>
+<body class="jp-style">
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+
+<div class="card jp-card" style="padding:48px 44px;">
+    <div class="logo">幸运大转盘</div>
+    <div class="sub">登录以继续</div>
+    <div class="jp-divider"></div>
+
+    <div id="message" style="display:none;margin-bottom:16px;" class="jp-msg"></div>
+
+    <div class="tabs">
+        <button class="tab on" onclick="switchTab('phone',this)">手机号</button>
+        <button class="tab" onclick="switchTab('email',this)">邮箱密码</button>
+        <button class="tab" onclick="switchTab('emailCode',this)">验证码</button>
+    </div>
+
+    <div id="phoneLogin" class="tab-content active">
+        <form id="phoneForm">
+            <div class="field"><label class="jp-label">手机号</label><input class="jp-input" type="tel" id="phone" placeholder="请输入手机号" required></div>
+            <div class="field"><label class="jp-label">密码</label><input class="jp-input" type="password" id="phonePassword" placeholder="请输入密码" required></div>
+            <button type="submit" class="jp-btn jp-btn-primary" style="width:100%">登 录</button>
+        </form>
+    </div>
+
+    <div id="emailLogin" class="tab-content">
+        <form id="emailForm">
+            <div class="field"><label class="jp-label">邮箱</label><input class="jp-input" type="email" id="email" placeholder="请输入邮箱" required></div>
+            <div class="field"><label class="jp-label">密码</label><input class="jp-input" type="password" id="emailPassword" placeholder="请输入密码" required></div>
+            <button type="submit" class="jp-btn jp-btn-primary" style="width:100%">登 录</button>
+        </form>
+    </div>
+
+    <div id="emailCodeLogin" class="tab-content">
+        <form id="emailCodeForm">
+            <div class="field"><label class="jp-label">邮箱</label><input class="jp-input" type="email" id="codeEmail" placeholder="请输入邮箱" required></div>
+            <div class="code-group">
+                <div class="field"><label class="jp-label">验证码</label><input class="jp-input" type="text" id="verificationCode" placeholder="请输入验证码" required></div>
+                <button type="button" id="sendCodeBtn" onclick="sendVerificationCode()">发送验证码</button>
+            </div>
+            <div style="margin-top:24px">
+                <button type="submit" class="jp-btn jp-btn-primary" style="width:100%">登 录</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="link">没有账号？<a href="register.html">立即注册</a></div>
+</div>
+
+<script>
+function switchTab(type, el) {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+    el.classList.add('on');
+    ['phoneLogin','emailLogin','emailCodeLogin'].forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById(type === 'phone' ? 'phoneLogin' : type === 'email' ? 'emailLogin' : 'emailCodeLogin').classList.add('active');
+    hideMsg();
+}
+function showMsg(msg, type) {
+    const m = document.getElementById('message');
+    m.textContent = msg; m.style.display = 'block'; m.className = 'jp-msg ' + (type === 'ok' ? 'jp-msg-ok' : 'jp-msg-err');
+    setTimeout(() => m.style.display = 'none', 4000);
+}
+function hideMsg() { document.getElementById('message').style.display = 'none'; }
+function redirect(r) {
+    if (r.code !== 200) return showMsg(r.message || '登录失败', 'err');
+    const role = r.data?.role;
+    window.location.href = role === 'ADMIN' ? 'admin.html' : role === 'CLAIMER' ? 'claimer.html' : 'member.html';
+}
+document.getElementById('phoneForm').onsubmit = async e => {
+    e.preventDefault();
+    try { const r = await fetch('/api/login/phone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:document.getElementById('phone').value,password:document.getElementById('phonePassword').value})}); redirect(await r.json()); } catch { showMsg('网络错误','err'); }
+};
+document.getElementById('emailForm').onsubmit = async e => {
+    e.preventDefault();
+    try { const r = await fetch('/api/login/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('emailPassword').value})}); redirect(await r.json()); } catch { showMsg('网络错误','err'); }
+};
+document.getElementById('emailCodeForm').onsubmit = async e => {
+    e.preventDefault();
+    try { const r = await fetch('/api/login/emailCode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('codeEmail').value,code:document.getElementById('verificationCode').value})}); redirect(await r.json()); } catch { showMsg('网络错误','err'); }
+};
+let cd = 0;
+async function sendVerificationCode() {
+    const email = document.getElementById('codeEmail').value;
+    if (!email) return showMsg('请填写邮箱','err');
+    const btn = document.getElementById('sendCodeBtn');
+    btn.disabled = true; btn.textContent = '发送中...';
+    try {
+        const r = await fetch('/api/sendCode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+        const d = await r.json();
+        if (d.code === 200) {
+            showMsg('验证码已发送','ok'); cd = 60;
+            const t = setInterval(() => { cd--; btn.textContent = cd+'秒'; if(cd<=0){clearInterval(t);btn.textContent='发送验证码';btn.disabled=false;} },1000);
+        } else { showMsg(d.message||'发送失败','err'); btn.textContent='发送验证码'; btn.disabled=false; }
+    } catch { showMsg('网络错误','err'); btn.textContent='发送验证码'; btn.disabled=false; }
+}
+</script>
+</body>
+</html>

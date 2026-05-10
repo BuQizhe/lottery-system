@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>奖品池配置 - 管理员</title>
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+  <style>
+    body {
+        background-color: #f5f5f5;
+        padding: 20px;
+    }
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .card-header {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 15px 20px;
+    }
+    .table th {
+        background-color: #f8f9fa;
+        text-align: center;
+    }
+    .table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+    .prob-input, .stock-input {
+        width: 80px;
+        padding: 5px;
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .update-btn {
+        background-color: #667eea;
+        color: white;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .update-btn:hover {
+        background-color: #5a67d8;
+    }
+    .save-all-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .save-all-btn:hover {
+        transform: scale(1.02);
+    }
+    .refresh-btn {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+    .note {
+        font-size: 12px;
+        color: #999;
+        margin-top: 15px;
+        text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h4><i class="fas fa-sliders-h"></i> 奖品池配置</h4>
+      <p class="mb-0">设置各奖品的中奖概率和库存，修改后实时生效，无需重启系统</p>
+    </div>
+    <div class="card-body">
+      <div class="mb-3 text-right">
+        <button class="refresh-btn" onclick="refreshPrizePool()">
+          <i class="fas fa-sync-alt"></i> 刷新
+        </button>
+        <button class="save-all-btn" onclick="saveAll()">
+          <i class="fas fa-save"></i> 保存全部修改
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered" id="prizeTable">
+          <thead>
+          <tr>
+            <th>奖品ID</th>
+            <th>奖品名称</th>
+            <th>中奖概率 (%)</th>
+            <th>剩余库存</th>
+            <th>操作</th>
+          </tr>
+          </thead>
+          <tbody id="prizeList">
+          <tr>
+            <td colspan="5" class="text-center">加载中...</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <i class="fas fa-info-circle"></i> 提示：概率总和建议为100%，库存为剩余可抽次数。修改后点击"保存全部修改"即时生效。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var userToken = localStorage.getItem("user_token");
+  var prizes = [];
+
+  // 检查登录状态
+  if (!userToken) {
+      alert("请先登录");
+      location.href = "blogin.html";
+  }
+
+  // 加载奖品列表
+  function loadPrizes() {
+      $.ajax({
+          url: '/prize/find-list',
+          type: 'GET',
+          data: { currentPage: 1, pageSize: 100 },
+          headers: { 'user_token': userToken },
+          success: function(result) {
+              if (result.code === 200 && result.data && result.data.records) {
+                  prizes = result.data.records;
+                  renderTable();
+              } else {
+                  $('#prizeList').html('<tr><td colspan="5" class="text-center">暂无奖品数据</td></tr>');
+              }
+          },
+          error: function() {
+              $('#prizeList').html('<tr><td colspan="5" class="text-center">加载失败，请刷新重试</td></tr>');
+          }
+      });
+  }
+
+  // 渲染表格
+  function renderTable() {
+      var html = '';
+      prizes.forEach(function(prize) {
+          var prob = prize.probability !== undefined ? prize.probability : 10;
+          var stock = prize.stock !== undefined ? prize.stock : 100;
+          html += `
+              <tr>
+                  <td>${prize.prizeId}</td>
+                  <td><strong>${prize.prizeName}</strong></td>
+                  <td>
+                      <input type="number" id="prob_${prize.prizeId}" value="${prob}"
+                             step="0.1" min="0" max="100" class="prob-input"> %
+                  </td>
+                  <td>
+                      <input type="number" id="stock_${prize.prizeId}" value="${stock}"
+                             step="1" min="0" class="stock-input">
+                  </td>
+                  <td>
+                      <button class="update-btn" onclick="updateSingle(${prize.prizeId})">更新</button>
+                  </td>
+              </tr>
+          `;
+      });
+      $('#prizeList').html(html);
+  }
+
+  // 更新单个奖品
+  function updateSingle(prizeId) {
+      var prob = parseFloat($('#prob_' + prizeId).val());
+      var stock = parseInt($('#stock_' + prizeId).val());
+
+      $.ajax({
+          url: '/prize/update-probability',
+          type: 'POST',
+          data: { prizeId: prizeId, probability: prob },
+          headers: { 'user_token': userToken },
+          success: function() {
+              $.ajax({
+                  url: '/prize/update-stock',
+                  type: 'POST',
+                  data: { prizeId: prizeId, stock: stock },
+                  headers: { 'user_token': userToken },
+                  success: function() {
+                      toastr.success('奖品配置已更新');
+                      loadPrizes();
+                  }
+              });
+          }
+      });
+  }
+
+  // 保存全部修改
+  function saveAll() {
+      var updates = [];
+      prizes.forEach(function(prize) {
+          updates.push({
+              prizeId: prize.prizeId,
+              probability: parseFloat($('#prob_' + prize.prizeId).val()),
+              stock: parseInt($('#stock_' + prize.prizeId).val())
+          });
+      });
+
+      $.ajax({
+          url: '/prize/batch-update',
+          type: 'POST',
+          contentType: 'application/json',
+          headers: { 'user_token': userToken },
+          data: JSON.stringify(updates),
+          success: function(result) {
+              if (result.code === 200) {
+                  toastr.success('奖品池配置已全部更新，实时生效');
+                  loadPrizes();
+              } else {
+                  toastr.error('更新失败：' + result.msg);
+              }
+          }
+      });
+  }
+
+  // 刷新
+  function refreshPrizePool() {
+      loadPrizes();
+      toastr.info('奖品池已刷新');
+  }
+
+  $(document).ready(function() {
+      loadPrizes();
+  });
+</script>
+</body>
+</html>
