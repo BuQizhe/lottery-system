@@ -52,3 +52,6 @@ pic/
 *.tmp
 *.swp
 *~
+
+# ========== Claude Code ==========
+.claude/
