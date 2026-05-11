@@ -22,9 +22,11 @@ logs/
 startup_error.log
 
 # ========== 敏感配置（不提交） ==========
+application.properties
 application-dev.properties
 application-local.properties
 application-prod.properties
+.env
 
 # ========== 系统文件 ==========
 Thumbs.db
